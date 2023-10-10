@@ -4,12 +4,16 @@
   "description": "Administrative discord bot for the Founding Sons Gaming discord server",
   "main": "src/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "nodemon"
   },
   "keywords": [],
   "author": "Sam Sly",
   "license": "ISC",
   "dependencies": {
     "discord.js": "^14.13.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
   }
 }
