@@ -9,6 +9,10 @@ const bot = new Client({
   ]
 })
 
+bot.on('ready', (client) => {
+  console.log(`✔ ${client.user.tag} is online.`)
+})
+
 bot.login(
   'MTE2MTA1MzA0ODgyMzYyMzc5Mw.GfpUQ_.l0PKtaRY8G5x1dYqkj7gLbswsbmddeics5CKPY'
 )
