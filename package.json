@@ -2,16 +2,21 @@
   "name": "thomasjeffersonbot",
   "version": "1.0.0",
   "description": "Administrative discord bot for the Founding Sons Gaming discord server",
-  "main": "src/index.js",
+  "main": "index.js",
   "scripts": {
+    "start": "node --env-file .env",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "nodemon --env-file .env"
+    "dev": "nodemon --env-file .env --ignore data/ index.js",
+    "deploy-commands": "node --env-file .env deploy-commands.js",
+    "delete-commands": "node --env-file .env delete-commands.js",
+    "refresh-commands": "node --env-file .env delete-commands.js\nnode --env-file .env deploy-commands.js"
   },
   "keywords": [],
   "author": "Sam Sly",
   "license": "ISC",
   "dependencies": {
-    "discord.js": "^14.13.0"
+    "discord.js": "^14.13.0",
+    "image-size": "^1.0.2"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"
