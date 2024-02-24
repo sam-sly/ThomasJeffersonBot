@@ -11,13 +11,10 @@ const {
   ModalBuilder,
   TextInputBuilder,
 } = require("discord.js");
-const { readFile } = require("../../utils/json");
+const Game = require("../../models/game.js");
 const getMembersRole = require("../../utils/getMembersRole");
 const addGame = require("../../handlers/addGame");
 const verifyImageForEmoji = require("../../utils/verifyImageForEmoji");
-
-const MEMBER = 2;
-const MODERATOR = 3;
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -39,17 +36,16 @@ module.exports = {
    * @param {ChatInputCommandInteraction} interaction
    */
   execute: async (interaction) => {
-    const { value: usersRole } = await getMembersRole(interaction.member);
+    const { value: usersRole, rank } = await getMembersRole(interaction.member);
 
-    if (usersRole < MEMBER) {
+    if (usersRole < rank.member) {
       await interaction.editReply({
         content: `You don't have permission to use this command.`,
       });
       return;
     }
 
-    const { games } = await readFile('data/games.json');
-    const { roles, channels } = await readFile('data/settings.json');
+    const games = await Game.find({}).exec();
 
     let gameName = interaction.options.getString('name').trim();
     let iconUrl = interaction.options.getString('icon-url')?.trim() ?? null;
@@ -66,14 +62,10 @@ module.exports = {
     });
 
     if (existingGame) {
-      await interaction.member.roles.add(existingGame.role.id);
-
-      if (interaction.member.roles.cache.find((r) => r.id === roles.noGames.id)) {
-        await interaction.member.roles.remove(roles.noGames.id);
-      }
+      await interaction.member.roles.add(existingGame.roleId);
 
       await interaction.editReply({
-        content: `${existingGame.name} already exists. You have been assigned the <@&${existingGame.role.id}> role and you can view <#${existingGame.channel.id}>.`,
+        content: `${existingGame.name} already exists. You have been assigned the <@&${existingGame.roleId}> role and you can view <#${existingGame.channelId}>.`,
       });
       return;
     }
@@ -82,33 +74,29 @@ module.exports = {
       emojiVerification = await verifyImageForEmoji(iconUrl);
     }
 
-    if (usersRole >= MODERATOR) {
-      if (!emojiVerification.status) {
-        await interaction.editReply({
-          content: `Must provide a valid emoji for the game.\n\n${emojiVerification.message}`,
-        });
+    if (usersRole >= rank.moderator) {
+      if (emojiVerification.status) {
+        const newGame = await addGame(
+          gameName,
+          iconUrl,
+          interaction.guild,
+        );
+        if (newGame.error) {
+          await interaction.editReply({
+            content: newGame.error.message,
+          });
+        }
+        else {
+          await interaction.editReply({
+            content: `${gameName} has been added.\n${newGame.emoji}${newGame.role}\n${newGame.channel}`,
+          });
+        }
         return;
       }
-      const newGame = await addGame(
-        gameName,
-        iconUrl,
-        games,
-        channels,
-        interaction.guild,
-      );
-      if (newGame.error) {
-        interaction.editReply({
-          content: newGame.error.message,
-        });
-      }
-      await interaction.editReply({
-        content: `${gameName} has been added.\n${newGame.emoji}${newGame.role}\n${newGame.channel}`,
-      });
-      return;
     }
 
     // Otherwise, send request for game
-    const moderatorChannel = interaction.guild.channels.cache.get(channels.moderator.id);
+    const moderatorChannel = interaction.guild.channels.cache.get(process.env.MODERATOR_CHANNEL);
     /**
      * @type {Message} message
      */
@@ -193,8 +181,6 @@ module.exports = {
         const newGame = await addGame(
           gameName,
           iconUrl,
-          games,
-          channels,
           interaction.guild,
         );
         if (newGame.error) {
@@ -208,9 +194,7 @@ module.exports = {
           return;
         }
         await interaction.member.roles.add(newGame.role);
-        if (interaction.member.roles.cache.find((r) => r.id === roles.noGames.id)) {
-          await interaction.member.roles.remove(roles.noGames.id);
-        }
+
         const approveEmbed = new EmbedBuilder()
           .setTitle(`👍 Request for 💠 ${gameName} has been approved.`)
           .setDescription(' ')
@@ -223,7 +207,7 @@ module.exports = {
           embeds: [ approveEmbed ],
           components: [],
         });
-        if (await interaction.fetchReply()) {
+        if (await interaction?.fetchReply()) {
           await interaction?.editReply({
             content: `${interaction.member}\n\nYour request for ${gameName} has been approved. 👍\n\nYou have been assigned the ${newGame.role} role and you can view ${newGame.channel}.`,
           });

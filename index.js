@@ -1,6 +1,6 @@
+const mongoose = require('mongoose');
 const fs = require('node:fs');
 const path = require('node:path');
-const { guildId } = require('./config.json');
 
 const {
   Client,
@@ -63,7 +63,9 @@ for (const file of eventFiles) {
 	}
 }
 
-
-// Login to Bot
-
-client.login(process.env.TOKEN);
+// MongoDB Connection
+mongoose.connect(process.env.MONGO_URI).then(() => {
+  console.log('Connected to MongoDB');
+  // Login to Bot
+  client.login(process.env.TOKEN);
+}).catch(err => console.error(err));

@@ -20,7 +20,7 @@ module.exports = async (error, title='❌ An error has occurred.', interaction=u
     .setTitle(title)
     .setDescription(error.message);
 
-  if (interaction) {
+  if (interaction !== null && interaction !== undefined) {
     if (!guild) guild = interaction.guild;
 
     errorEmbed.setAuthor({

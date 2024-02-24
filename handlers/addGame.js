@@ -3,13 +3,11 @@ const {
   ChannelType,
   Guild,
 } = require("discord.js");
-const { writeFile } = require("../utils/json");
+const Game = require("../models/game.js");
 
 /**
  * @param {String} gameName
  * @param {String} iconURL
- * @param {Array<Object>} games
- * @param {Array<Object>} channels
  * @param {Guild} guild
  * @returns {
  *  {GuildEmoji} emoji
@@ -17,7 +15,7 @@ const { writeFile } = require("../utils/json");
  *  {Role} role
  * }
  */
-module.exports = async (gameName, iconURL, games, channels, guild) => {
+module.exports = async (gameName, iconURL, guild) => {
   let emoji;
   try {
     emoji = await guild.emojis.create({
@@ -39,7 +37,7 @@ module.exports = async (gameName, iconURL, games, channels, guild) => {
   });
   console.log(`Created new role ${role.name}.`);
 
-  const gamesCategory = guild.channels.cache.get(channels.games.id);
+  const gamesCategory = guild.channels.cache.get(process.env.GAMES_CATEGORY);
 
   const channel = await guild.channels.create({
     name: `💠・${gameName.toLowerCase().replace(/\s+/g,'-').replace(/[^a-zA-Z0-9-_]/g,'')}`,
@@ -47,26 +45,21 @@ module.exports = async (gameName, iconURL, games, channels, guild) => {
     permissionOverwrites: gamesCategory.permissionOverwrites.cache,
     parent: gamesCategory,
   });
+  console.log(`Created new channel ${channel.name}.`);
   await channel.permissionOverwrites.create(role, {
     ViewChannel: true,
     ManageWebhooks: true,
   });
-  console.log(`Created new channel ${channel.name}.`);
+  console.log(`Added permissions for ${role.name} to ${channel.name}.`);
 
   // TODO: send message explaining following anouncements in channel
 
-  games.push({
+  await Game.create({
     name: gameName,
-    emoji: emoji,
-    role: role,
-    channel: channel,
+    emojiId: emoji.id,
+    roleId: role.id,
+    channelId: channel.id,
   });
-
-  games.sort((a, b) => {
-    return (a.name.toLowerCase() > b.name.toLowerCase()) ? 1 : ((b.name.toLowerCase() > a.name.toLowerCase()) ? -1 : 0)
-  });
-
-  await writeFile({ games }, 'data/games.json');
 
   return {
     emoji: emoji,

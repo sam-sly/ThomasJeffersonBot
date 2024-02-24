@@ -3,10 +3,7 @@ const {
   GuildMember,
   ChatInputCommandInteraction,
 } = require("discord.js");
-const { readFile } = require("../../utils/json");
 const getMembersRole = require("../../utils/getMembersRole");
-
-const MEMBER = 2;
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -23,9 +20,9 @@ module.exports = {
    * @param {ChatInputCommandInteraction} interaction
    */
   execute: async (interaction) => {
-    const { value: usersRole } = await getMembersRole(interaction.member);
+    const { value: usersRole, rank } = await getMembersRole(interaction.member);
     
-    if (usersRole < MEMBER) {
+    if (usersRole < rank.member) {
       await interaction.editReply({
         content: `You don't have permission to use this command.`,
       });
@@ -46,18 +43,16 @@ module.exports = {
      */
     const userToMove = interaction.options.getMember('user');
 
-    const { channels } = await readFile('data/settings.json');
-
-    if (userToMove.voice.channel === null || userToMove.voice.channel.id !== channels.lobby.id) {
+    if (userToMove.voice.channel === null || userToMove.voice.channel.id !== process.env.LOBBY_CHANNEL) {
       await interaction.editReply({
-        content: `${userToMove} is not connected to <#${channels.lobby.id}>.`,
+        content: `${userToMove} is not connected to <#${process.env.LOBBY_CHANNEL}>.`,
       });
       return;
     }
 
     await userToMove.voice.setChannel(targetChannel);
-    console.log(`Moved ${userToMove} to ${targetChannel}.`);
+    console.log(`Moved ${userToMove.displayName} to ${targetChannel.name}.`);
 
-    await interaction.deleteReply();
+    await interaction.editReply(`Successfully moved ${userToMove} to ${targetChannel}.`);
   },
 };

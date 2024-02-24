@@ -6,7 +6,7 @@ const {
   ActionRowBuilder,
   GuildMember,
 } = require("discord.js");
-const { readFile } = require("../../utils/json");
+const Game = require("../../models/game.js");
 const getMembersRole = require("../../utils/getMembersRole");
 
 module.exports = {
@@ -18,22 +18,20 @@ module.exports = {
    * @param {ChatInputCommandInteraction} interaction
    */
   execute: async (interaction) => {
-    const { roles } = await readFile('data/settings.json');
-
     /**
      * @type {GuildMember} user
      */
     const user = interaction.member;
-    const { role: usersRole } = await getMembersRole(user);
+    const { value: usersRole, rank } = await getMembersRole(user);
 
-    if (![ roles.member.id, roles.admin.id, roles.moderator.id ].includes(usersRole.id)) {
+    if (usersRole < rank.member) {
       interaction.editReply({
         content: `You don't have permission to use this command.`,
       });
       return;
     }
 
-    const { games } = await readFile('data/games.json');
+    const games = await Game.find({}).sort({ name: 'asc' }).exec();
 
     let page = 0;
     const numPages = Math.ceil(games.length / 20);
@@ -50,7 +48,7 @@ module.exports = {
           const gameIndex = page*20 + row*5 + i;
           if (gameIndex >= games.length) break;
 
-          const gameIsFollowed = user.roles.cache.some((r) => r.id === games[gameIndex].role.id);
+          const gameIsFollowed = user.roles.cache.some((r) => r.id === games[gameIndex].roleId);
 
           const gameButton = new ButtonBuilder()
             .setCustomId(`${gameIndex}`)
@@ -96,27 +94,14 @@ module.exports = {
         continue;
       }
       // Otherwise, input.customId === gameIndex
-      const gameRoleId = games[parseInt(input.customId)].role.id;
+      const gameRoleId = games[parseInt(input.customId)].roleId;
       const gameRole = interaction.guild.roles.cache.get(gameRoleId);
 
       if (user.roles.cache.some((r) => r.id === gameRoleId)) {
         await user.roles.remove(gameRole);
-
-        let userHasNoGames = true;
-        for (const game of games) {
-          if (user.roles.cache.find((r) => r.id === game.role.id)) {
-            userHasNoGames = false;
-            break;
-          }
-        }
-        if (userHasNoGames) await user.roles.add(roles.noGames.id);
       }
       else {
         await user.roles.add(gameRole);
-
-        if (user.roles.cache.find((r) => r.id === roles.noGames.id)) {
-          await user.roles.remove(roles.noGames.id);
-        }
       }
     }
   },

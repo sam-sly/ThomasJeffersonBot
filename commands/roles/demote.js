@@ -2,9 +2,8 @@ const {
   SlashCommandBuilder,
   GuildMember,
   ChatInputCommandInteraction,
-  Role,
 } = require("discord.js");
-const { readFile } = require("../../utils/json");
+const Game = require("../../models/game.js");
 const getMembersRole = require("../../utils/getMembersRole");
 
 module.exports = {
@@ -26,68 +25,59 @@ module.exports = {
      * @type {GuildMember} user
      */
     const user = interaction.options.getMember('user');
-    const { role: usersCurrentRole } = await getMembersRole(user);
-    const { role: demotersRole } = await getMembersRole(interaction.member);
+    const { value: usersCurrentRole, rank } = await getMembersRole(user);
+    const { value: demotersRole } = await getMembersRole(interaction.member);
 
     let newRole;
-    const { roles } = await readFile('data/settings.json');
 
-    switch (usersCurrentRole.id) {
-      case roles.admin.id:
-        if (interaction.member.id !== interaction.guild.ownerId) {
+    switch (usersCurrentRole) {
+      case rank.admin:
+        if (demotersRole < rank.owner) {
           await interaction.editReply({
             content: `You don't have permission to demote ${user}.`,
           });
           return;
         }
-        await user.roles.remove(roles.admin.id);
-        await user.roles.add(roles.moderator.id);
-        newRole = roles.moderator.id;
+        await user.roles.add(process.env.MODERATOR_ROLE_ID);
+        await user.roles.remove(process.env.ADMIN_ROLE_ID);
+        newRole = process.env.MODERATOR_ROLE_ID;
         break;
-      case roles.moderator.id:
-        if (![ roles.admin.id ].includes(demotersRole.id)) {
+      case rank.moderator:
+        if (demotersRole < rank.admin) {
           await interaction.editReply({
             content: `You don't have permission to demote ${user}.`,
           });
           return;
         }
-        await user.roles.remove(roles.moderator.id);
-        newRole = roles.member.id;
+        await user.roles.remove(process.env.MODERATOR_ROLE_ID);
+        newRole = process.env.MEMBER_ROLE_ID;
         break;
-      case roles.member.id:
-        if (![ roles.admin.id, roles.moderator.id ].includes(demotersRole.id)) {
+      case rank.member:
+        if (demotersRole < rank.moderator) {
           await interaction.editReply({
             content: `You don't have permission to demote ${user}.`,
           });
           return;
         }
-        await user.roles.remove(roles.member.id);
-        
-        if (user.roles.cache.find((r) => r.id === roles.noGames.id)) {
-          await user.roles.remove(roles.noGames.id);
-        }
-        else {
-          const { games } = await readFile('data/games.json');
-          for (const game of games) {
-            if (user.roles.cache.find((r) => r.id === game.role.id)){
-              await user.roles.remove(game.role.id);
-              console.log(`Removed ${game.name} from ${user.displayName}.`);
-            }
+
+        const games = await Game.find().exec();
+        for (const game of games) {
+          if (user.roles.cache.find((r) => r.id === game.roleId)){
+            await user.roles.remove(game.role.id);
+            console.log(`Removed ${game.name} from ${user.displayName}.`);
           }
         }
-        await user.roles.add(roles.guest.id);
-        newRole = roles.guest.id;
+
+        await user.roles.add(process.env.GUEST_ROLE_ID);
+        await user.roles.remove(process.env.MEMBER_ROLE_ID);
+        newRole = process.env.GUEST_ROLE_ID;
         break;
-      case roles.guest.id:
+      case rank.guest:
         await interaction.editReply({
-          content: `${user} can't be demoted lower than <@&${roles.guest.id}>.`,
+          content: `${user} can't be demoted lower than <@&${process.env.GUEST_ROLE_ID}>.`,
         });
         return;
-      case roles.newJoin.id:
-        await interaction.editReply({
-          content: `${user} can't be demoted lower than <@&${roles.newJoin.id}>.`,
-        });
-        return;
+      case rank.newJoin:
       default:
         console.log('No roles found.');
         await interaction.editReply({
@@ -96,7 +86,7 @@ module.exports = {
         return;
     }
 
-    console.log(`${user.displayName} has been demoted from ${usersCurrentRole.name}.`);
+    console.log(`${user.displayName} has been demoted from ${usersCurrentRole}.`);
     await interaction.editReply({
       content: `${user} has been demoted to <@&${newRole}>.`,
     });

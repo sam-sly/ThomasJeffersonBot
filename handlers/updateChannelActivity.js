@@ -1,50 +1,131 @@
 const {
   VoiceChannel,
 } = require("discord.js");
-const { readFile, writeFile } = require("../utils/json");
+const GamingChannel = require('../models/gamingChannel');
+
+const skipActivities = ['Custom Status', 'Spotify'];
+
+const DISCORD_NAME_CHANGE_LIMIT = {
+  count: 2,
+  time: 10 * 60_000,
+};
+const TIME_BUFFER = 1_000;
+
+const checkNameChanges = async (savedChannel) => {
+  for (let i = 0; i < savedChannel.nameChanges.length; i++) {
+    if (Date.now() - savedChannel.nameChanges[i] > DISCORD_NAME_CHANGE_LIMIT.time + TIME_BUFFER) {
+      savedChannel.nameChanges.splice(i, 1);
+      await savedChannel.save();
+      i--;
+    }
+  }
+  return savedChannel.nameChanges.length;
+}
 
 /**
  * @param {VoiceChannel} channel
- * @param {Number} i
+ * @param {DynamicVoiceChannel} savedChannel
  */
-module.exports = async (channel, i) => {
-  console.log(`Updating activity for ${channel.name}.`);
-  const { active, templates, skipActivities } = await readFile('data/dynamicChannels.json');
+module.exports = async (channel, savedChannel) => {
+  if (await checkNameChanges(savedChannel) >= DISCORD_NAME_CHANGE_LIMIT.count) {
+    console.log(`${channel.name} cannot be changed at this time.`);
+
+    if (savedChannel.updateQueue) return Math.ceil((savedChannel.updateQueue._idleStart + savedChannel.updateQueue._idleTimeout - Date.now()) / 1000);
+
+    const delay = DISCORD_NAME_CHANGE_LIMIT.time - (Date.now() - savedChannel.nameChanges[0]) + TIME_BUFFER;
+
+    const timeoutId = setTimeout(async () => {
+      const savedChannel = await GamingChannel.findOne({ id: channel.id }).exec();
+
+      if (!savedChannel) return;
+
+      const updateChannelActivity = require('./updateChannelActivity');
+      await updateChannelActivity(channel, savedChannel);
+    }, delay);
+
+    savedChannel.updateQueue = timeoutId;
+    await savedChannel.save();
+
+    return delay;
+  }
+
+  if (savedChannel.updateQueue) {
+    clearTimeout(savedChannel.updateQueue);
+    savedChannel.updateQueue = null;
+    await savedChannel.save();
+  }
+
+  console.log(`Updating activity for ${savedChannel.icon}・${savedChannel.name}.`);
   let activity = null;
 
-  switch (active[i].influence) {
+  switch (savedChannel.influence) {
     case 'none':
-      activity = null;
       break;
+    case 'majority':
+      const allActivities = new Map();
+
+      // TODO: change activity detection to use activity type codes
+
+      for (const member of channel.members.values()) {
+        for (const a of member.presence.activities) {
+          if (skipActivities.includes(a.name)) continue;
+          if (allActivities.has(a.name)) {
+            allActivities.get(a.name).count++;
+            continue;
+          }
+          allActivities.set(a.name, {
+            name: a.name,
+            count: 1,
+          });
+        }
+      }
+
+      console.log(allActivities);
+
+      let maxCount = 0;
+      for (const a of allActivities.values()) {
+        if (a.count > maxCount) {
+          maxCount = a.count;
+          activity = a.name;
+          console.log(`New activity: ${activity} with ${a.count} users.`)
+        }
+        else if (a.count === maxCount) {
+          console.log(`No new activity. ${a.name} and ${activity} both have ${a.count} users.`)
+          activity = null
+        };
+      }
+
+      if (activity != null) break;
     case 'owner':
-    default:
-      const owner = channel.members.get(active[i].owner.userId);
+      console.log('Checking owner activity.');
+      const owner = channel.members.get(savedChannel.ownerId);
       if (owner) {
         for (const a of owner.presence.activities) {
           if (skipActivities.includes(a.name)) continue;
-          activity = {
-            icon: '🎮',
-            name: a.name,
-          };
+          activity = a.name;
           break;
         }
       }
+      console.log(`Activity: ${activity}`);
       break;
-      // TODO: find majority activity
   }
 
-  if (JSON.stringify(activity) === JSON.stringify(active[i].activity)) {
+  const sameSavedActivity = activity === savedChannel.activity;
+  const sameChannelName = activity? channel.name.slice(3) === activity : channel.name.slice(3) === savedChannel.name;
+
+  if (sameSavedActivity && sameChannelName) {
     console.log('No change to activity.');
     return;
   }
 
-  active[i].activity = activity;
+  savedChannel.activity = activity;
+  savedChannel.nameChanges.push(Date.now());
 
-  await writeFile({ active, templates, skipActivities }, 'data/dynamicChannels.json');
+  await savedChannel.save();
 
-  await channel?.setName((activity)
-    ? `${activity.icon}・${activity.name}`
-    : `${active[i].icon}・${active[i].name}`
+  await channel.setName(activity
+    ? `${savedChannel.icon}・${activity}`
+    : `${savedChannel.icon}・${savedChannel.name}`
   );
-  console.log(`Successfully changed activity to ${(activity)? `${activity.icon}・${activity.name}` : 'none'}.`);
+  console.log(`Changed ${savedChannel.icon}・${savedChannel.name} activity to ${activity ? `${savedChannel.icon}・${activity}` : 'none'}.`);
 };

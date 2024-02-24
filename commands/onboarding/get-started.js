@@ -12,8 +12,6 @@ const {
 const { readFile } = require('../../utils/json');
 const getMembersRole = require("../../utils/getMembersRole");
 
-const NEW_JOIN = 0;
-
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('get-started')
@@ -23,9 +21,9 @@ module.exports = {
    * @param {ChatInputCommandInteraction} interaction
    */
   execute: async (interaction) => {
-    const { value: usersRole } = await getMembersRole(interaction.member);
+    const { value: usersRole, rank } = await getMembersRole(interaction.member);
 
-    if (usersRole !== NEW_JOIN) {
+    if (usersRole !== rank.newJoin) {
       interaction.editReply({
         content: `You don't need to use this command.`,
       });
@@ -152,16 +150,13 @@ module.exports = {
       }],
     });
 
-    const { roles, channels } = await readFile('data/settings.json');
-
-    const introChannel = await interaction.guild.channels.cache.get(channels.introductions.id);
+    const introChannel = await interaction.guild.channels.cache.get(process.env.INTRODUCTIONS_CHANNEL);
 
     await introChannel.send({
       embeds: [ newIntroduction ],
     });
 
-    await interaction.member.roles.add(roles.guest.id);
-    await interaction.member.roles.remove(roles.newJoin.id);
-    console.log(`${interaction.member.displayName} is now a ${roles.guest.name}.`)
+    await interaction.member.roles.add(process.env.GUEST_ROLE_ID);
+    console.log(`${interaction.member.displayName} is now a Guest.`)
   },
 };

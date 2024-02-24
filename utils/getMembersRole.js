@@ -1,5 +1,4 @@
 const { GuildMember, Role } = require("discord.js");
-const { readFile } = require("./json");
 
 /**
  * @param {GuildMember} member
@@ -9,14 +8,12 @@ const { readFile } = require("./json");
  * }
  */
 module.exports = async (member) => {
-  const { roles } = await readFile('data/settings.json');
-
   const hierarchy = [
-    roles.newJoin.id,
-    roles.guest.id,
-    roles.member.id,
-    roles.moderator.id,
-    roles.admin.id,
+    process.env.GUEST_ROLE_ID,
+    process.env.MEMBER_ROLE_ID,
+    process.env.MODERATOR_ROLE_ID,
+    process.env.ADMIN_ROLE_ID,
+    process.env.OWNER_ROLE_ID
   ];
 
   let membersRole = -1;
@@ -28,8 +25,18 @@ module.exports = async (member) => {
     }
   }
 
+  console.log(`${member.displayName}'s role: ${membersRole}`);
+
   return {
     value: membersRole,
     role: member.roles.cache.get(hierarchy[membersRole]),
+    rank: {
+      owner: 4,
+      admin: 3,
+      moderator: 2,
+      member: 1,
+      guest: 0,
+      newJoin: -1,
+    },
   };
 };

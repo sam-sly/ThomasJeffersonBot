@@ -1,5 +1,8 @@
-const { Events, Message, EmbedBuilder } = require('discord.js');
-const sendWelcomeMessage = require('../handlers/sendWelcomeMessage');
+const {
+  Events,
+  Message,
+} = require('discord.js');
+const sendWelcomeMessage = require('../buttons/onboard.js').get('sendWelcomeMessage');
 const reportTheError = require('../utils/reportTheError');
 
 const SYSTEM_WELCOME_MESSAGE = 7;
@@ -13,6 +16,8 @@ module.exports = {
     if (message.type !== SYSTEM_WELCOME_MESSAGE) return;
 
     try {
+      await new Promise(resolve => setTimeout(resolve, 500));
+
       await sendWelcomeMessage(message);
       console.log(`Sent ${message.member.displayName} the welcome message.`);
     } catch (error) {

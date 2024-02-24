@@ -2,7 +2,7 @@ const {
   Events,
   Presence,
 } = require('discord.js');
-const { readFile } = require('../utils/json');
+const GamingChannel = require('../models/gamingChannel');
 const updateChannelActivity = require('../handlers/updateChannelActivity');
 const reportTheError = require('../utils/reportTheError');
 
@@ -18,17 +18,19 @@ module.exports = {
 
       const validPresence = newPresence || oldPresence;
       const member = validPresence.guild.members.cache.get(validPresence.userId);
-      const channel = member.voice.channel;
+      const channel = member.voice?.channel;
 
       if (!channel) return;
 
-      const { active } = await readFile('data/dynamicChannels.json');
+      const activeChannel = await GamingChannel.findOne({ id: channel.id }).exec();
 
-      const indexOfActiveChannel = active.findIndex((c) => c.id === channel.id);
-
-      if (indexOfActiveChannel === -1) return;
+      if (!activeChannel) return;
+      // console.log('Old Presence');
+      // console.log(oldPresence);
+      // console.log('New Presence');
+      // console.log(newPresence);
       
-      await updateChannelActivity(channel, indexOfActiveChannel);
+      await updateChannelActivity(channel, activeChannel);
     } catch (error) {
       console.log('Old Presence');
       console.log(oldPresence);

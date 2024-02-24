@@ -3,13 +3,14 @@ const sizeOf = require('image-size');
 
 const ALLOWED_FILE_TYPES = [
   'jpeg',
+  'jpg',
   'png',
   'gif',
 ];
 const MAX_SIZE = 256;
 
 module.exports = (imageUrl) => {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     try {
       http.get(imageUrl, (response) => {
         const chunks = [];
@@ -22,13 +23,13 @@ module.exports = (imageUrl) => {
             if (!ALLOWED_FILE_TYPES.includes(imageSize.type)) {
               resolve({
                 status: false,
-                message: '🚫 The emoji is too large.  Max size is **256x256** pixels.'
+                message: '🚫 The emoji is not a supported file type.  Supported file types are **JPEG**, **PNG**, and **GIF**.'
               });
             }
             if (imageSize.height > MAX_SIZE || imageSize.width > MAX_SIZE) {
               resolve({
                 status: false,
-                message: '🚫 The emoji is not a supported file type.  Supported file types are **JPEG**, **PNG**, and **GIF**.',
+                message: '🚫 The emoji is too large.  Max size is **256x256** pixels.',
               });
             }
           } catch (error) {

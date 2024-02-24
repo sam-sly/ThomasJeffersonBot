@@ -3,7 +3,6 @@ const {
   GuildMember,
   ChatInputCommandInteraction,
 } = require("discord.js");
-const { readFile } = require("../../utils/json");
 const getMembersRole = require("../../utils/getMembersRole");
 
 module.exports = {
@@ -25,65 +24,63 @@ module.exports = {
      * @type {GuildMember} user
      */
     const user = interaction.options.getMember('user');
-    const { role: usersCurrentRole } = await getMembersRole(user);
-    const { role: promotersRole } = await getMembersRole(interaction.member);
+    const { value: usersCurrentRole, rank } = await getMembersRole(user);
+    const { value: promotersRole } = await getMembersRole(interaction.member);
 
     let newRole;
-    const { roles } = await readFile('data/settings.json');
 
-    switch (usersCurrentRole.id) {
-      case roles.admin.id:
+    switch (usersCurrentRole) {
+      case rank.owner:
         await interaction.editReply({
-          content: `${user} can't be promoted higher than <@&${roles.admin.id}>.`,
+          content: `${user} can't be promoted higher than <@&${process.env.OWNER_ROLE_ID}>.`,
         });
         return;
-      case roles.moderator.id:
-        if (![ roles.admin.id ].includes(promotersRole.id)) {
+      case rank.admin:
+        await interaction.editReply({
+          content: `${user} can't be promoted higher than <@&${process.env.ADMIN_ROLE_ID}>.`,
+        });
+        return;
+      case rank.moderator:
+        if (promotersRole < rank.admin) {
           await interaction.editReply({
             content: `You don't have permission to promote ${user}.`,
           });
           return;
         }
-        await user.roles.remove(roles.moderator.id);
-        await user.roles.add(roles.admin.id);
-        newRole = roles.admin.id;
+        await user.roles.add(process.env.ADMIN_ROLE_ID);
+        await user.roles.remove(process.env.MODERATOR_ROLE_ID);
+        newRole = process.env.ADMIN_ROLE_ID;
         break;
-      case roles.member.id:
-        if (![ roles.admin.id ].includes(promotersRole.id)) {
+      case rank.member:
+        if (promotersRole < rank.moderator) {
           await interaction.editReply({
             content: `You don't have permission to promote ${user}.`,
           });
           return;
         }
-        await user.roles.add(roles.moderator.id);
-        newRole = roles.moderator.id;
+        await user.roles.add(process.env.MODERATOR_ROLE_ID);
+        newRole = process.env.MODERATOR_ROLE_ID;
         break;
-      case roles.guest.id:
-        if (![ roles.admin.id, roles.moderator.id ].includes(promotersRole.id)) {
+      case rank.guest:
+        if (promotersRole < rank.moderator) {
           await interaction.editReply({
             content: `You don't have permission to promote ${user}.`,
           });
           return;
         }
-        await user.roles.remove(roles.guest.id);
-        await user.roles.add(roles.member.id);
-        await user.roles.add(roles.noGames.id);
-        newRole = roles.member.id;
+        await user.roles.add(process.env.MEMBER_ROLE_ID);
+        await user.roles.remove(process.env.GUEST_ROLE_ID);
+        newRole = process.env.MEMBER_ROLE_ID;
         break;
-      case roles.newJoin.id:
+      case rank.newJoin:
+      default:
         await interaction.editReply({
           content: `${user} needs to use the \`/get-started\` command to get promoted.`,
         });
         return;
-      default:
-        console.log('No roles found.');
-        await interaction.editReply({
-          content: `${user} has no roles.`,
-        });
-        return;
     }
     
-    console.log(`${user.displayName} has been promoted from ${usersCurrentRole.name}.`); 
+    console.log(`${user.displayName} has been promoted from ${usersCurrentRole}.`); 
     await interaction.editReply({
       content: `${user} has been promoted to <@&${newRole}>.`,
     });

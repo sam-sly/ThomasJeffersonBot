@@ -6,8 +6,6 @@ const {
 } = require("discord.js");
 const getMembersRole = require("../../utils/getMembersRole");
 
-const ADMIN = 4;
-
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('administrator-mode')
@@ -19,9 +17,9 @@ module.exports = {
   execute: async (interaction) => {
     const member = interaction.member;
 
-    const { value: usersRole } = await getMembersRole(member);
+    const { value: usersRole, rank } = await getMembersRole(member);
 
-    if (usersRole < ADMIN) {
+    if (usersRole < rank.admin) {
       await interaction.editReply({
         content: `You don't have permission to use this command.`,
       });
