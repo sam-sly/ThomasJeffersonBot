@@ -1,71 +1,97 @@
 const mongoose = require('mongoose');
 
-// MongoDB Connection
-mongoose.connect(process.env.MONGO_URI).then(async () => {
-  console.log('Connected to MongoDB');
+const run = async () => {
+	// MongoDB Connection
+	await mongoose.connect('mongodb+srv://CoopTroop:d8YsR54hvu1TXTLq@cluster.olqny6n.mongodb.net/?retryWrites=true&w=majority');
+	console.log('Connected to MongoDB-cloud');
 
-  // const Game = require('./models/game');
-  const DynamicVoiceChannel = require('./models/dynamicVoiceChannel');
-  const SocialChannel = require('./models/socialChannel');
-  const GamingChannel = require('./models/gamingChannel');
+	const Game = require('../models/game');
+	const ButtonListener = require('../models/buttonListener');
+	const GamingChannel = require('../models/gamingChannel');
+	const SocialChannel = require('../models/socialChannel');
 
-  const dynamicChannels = await DynamicVoiceChannel.find({});
+	const games = await Game.find().exec();
+	const buttonListeners = await ButtonListener.find().exec();
+	const gamingChannels = await GamingChannel.find().exec();
+	const socialChannels = await SocialChannel.find().exec();
 
-  for (const channel of dynamicChannels) {
-    const newChannel = new SocialChannel({
-      name: channel.name,
-      icon: channel.icon,
-      fullName: channel.fullName,
-      location: channel.location,
-      description: channel.description,
-      id: channel.id,
-      isActive: channel.isActive,
-    });
-    await newChannel.save();
-    console.log(newChannel);
-    console.log(`Social Channel ${newChannel.name} saved`);
-  }
+	await mongoose.connection.close();
 
-  // const { games } = require('./data/games.json');
-  //
-  // for (const game of games) {
-  //   if (await Game.exists({ name: game.name })) {
-  //     console.log(`Game ${game.name} already exists`);
-  //     continue;
-  //   }
-  //   const newGame = new Game({ 
-  //     name: game.name,
-  //     emojiId: game.emoji.id,
-  //     roleId: game.role.id,
-  //     channelId: game.channel.id
-  //   });
-  //   await newGame.save();
-  //   console.log(newGame);
-  //   console.log(`Game ${newGame.name} saved`);
-  // }
-  //
-  //
-  // const { templates } = require('./data/dynamicChannels.json');
-  //
-  // for (const template of templates) {
-  //   if (await DynamicVoiceChannel.exists({ name: template.name })) {
-  //     console.log(`DVC ${template.name} already exists`);
-  //     continue;
-  //   }
-  //   const newDVC = new DynamicVoiceChannel({
-  //     name: template.name,
-  //     icon: template.icon,
-  //     fullName: template.fullName,
-  //     location: template.location,
-  //     description: template.description,
-  //   });
-  //   await newDVC.save();
-  //   console.log(newDVC);
-  //   console.log(`DVC ${newDVC.name} saved`);
-  // }
-  //
-  // console.log(await Game.find({}));
-  // console.log(await DynamicVoiceChannel.find({}));
+	await mongoose.connect('mongodb://127.0.0.1:27017/?directConnection=true&serverSelectionTimeoutMS=2000&appName=mongosh+2.1.5');
+	console.log('Connected to MongoDB-local');
 
-  return;
-}).catch(err => console.error(err));
+	console.log('Games...\n\n');
+	for (const game of games) {
+		const exists = await Game.find({ name: game.name }).exec();
+		if (exists) {
+			console.log(`\n\nExists:\n${exists}\n\n`);
+			continue;
+		}
+		const newD = await Game.create({
+			name: game.name,
+			emojiId: game.emojiId,
+			roleId: game.roleId,
+			channelId: game.channelId,
+			subscribers: game.subscribers,
+		});
+		console.log(`\n\nCreated:\n${newD}\n\n`);
+	}
+	console.log('ButtonListeners...\n\n');
+	for (const buttonListener of buttonListeners) {
+		const exists = await ButtonListener.find({ id: buttonListener.id, messageId: buttonListener.messageId }).exec();
+		if (exists) {
+			console.log(`\n\nExists:\n${exists}\n\n`);
+			continue;
+		}
+		const newD = await ButtonListener.create({
+			id: buttonListener.id,
+			messageId: buttonListener.messageId,
+			callbackPath: buttonListener.callbackPath,
+			callbackName: buttonListener.callbackName,
+			args: buttonListener.args,
+		});
+		console.log(`\n\nCreated:\n${newD}\n\n`);
+	}
+	console.log('GamingChannels...\n\n');
+	for (const gamingChannel of gamingChannels) {
+		const exists = await GamingChannel.find({ id: gamingChannel.id }).exec();
+		if (exists) {
+			console.log(`\n\nExists:\n${exists}\n\n`);
+			continue;
+		}
+		const newD = await GamingChannel.create({
+			name: gamingChannel.name,
+			icon: gamingChannel.icon,
+			fullName: gamingChannel.fullName,
+			number: gamingChannel.number,
+			id: gamingChannel.id,
+			activity: gamingChannel.activity,
+			influence: gamingChannel.influence,
+			ownerId: gamingChannel.ownerId,
+			nameChanges: gamingChannel.nameChanges,
+			updateQueue: gamingChannel.updateQueue,
+		});
+		console.log(`\n\nCreated:\n${newD}\n\n`);
+	} 
+	console.log('SocialChannels...\n\n');
+	for (const socialChannel of socialChannels) {
+		const exists = await SocialChannel.find({ name: socialChannel.name }).exec();
+		if (exists) {
+			console.log(`\n\nExists:\n${exists}\n\n`);
+			continue;
+		}
+		const newD = await SocialChannel.create({
+			name: socialChannel.name,
+			icon: socialChannel.icon,
+			fullName: socialChannel.fullName,
+			location: socialChannel.location,
+			description: socialChannel.description,
+			id: socialChannel.id,
+			isActive: socialChannel.isActive,
+		});
+		console.log(`\n\nCreated:\n${newD}\n\n`);
+	}
+	return;
+}
+
+run();
