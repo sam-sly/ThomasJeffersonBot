@@ -2,6 +2,7 @@ const SocialChannel = require('../models/socialChannel');
 const GamingChannel = require('../models/gamingChannel');
 const updateChannelActivity = require('./updateChannelActivity');
 const fixChannelPositions = require('../utils/fixChannelPositions');
+const createNewSocialChannel = require('./createNewSocialChannel');
 
 module.exports = async (client) => {
   const socialChannels = await SocialChannel.find({ isActive: true }).exec();
@@ -52,6 +53,10 @@ module.exports = async (client) => {
 
   // Reset voice channel positions
   await fixChannelPositions(membersCategory, socialChannels, gamingChannels);
+
+  if (count === 0) {
+    await createNewSocialChannel(membersCategory);
+  }
 
   // Update gaming channels if an update was queued
   

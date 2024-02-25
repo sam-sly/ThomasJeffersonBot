@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "node --env-file .env.production index.js",
-    "dev": "nodemon --env-file .env index.js",
+    "dev": "nodemon --env-file .env --ignore data/ --ignore pm2/ --ignore scripts/ index.js",
     "local": "nodemon --env-file .env.production --ignore data/ index.js",
     "deploy-commands": "node --env-file .env.production deploy-commands.js",
     "delete-commands": "node --env-file .env.production delete-commands.js",
