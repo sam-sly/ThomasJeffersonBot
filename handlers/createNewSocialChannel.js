@@ -1,7 +1,6 @@
 const {
   VoiceChannel,
   CategoryChannel,
-  VoiceState,
   ChannelType,
   EmbedBuilder,
 } = require('discord.js');
@@ -14,11 +13,10 @@ const SILENT_FLAG = 4096;
 /**
  * @param {VoiceState} newState
  */
-module.exports = async (newState) => {
+module.exports = async (category) => {
   /**
    * @type {CategoryChannel} category
    */
-  const category = newState.channel.parent;
   const activeSocialChannels = await SocialChannel.find({ isActive: true }).exec();
   const activeGamingChannels = await GamingChannel.find().exec();
 
@@ -31,7 +29,7 @@ module.exports = async (newState) => {
   /**
    * @type {VoiceChannel} newChannel
    */
-  const newChannel = await newState.guild.channels.create({
+  const newChannel = await category.guild.channels.create({
     name: channelDetails.fullName,
     type: ChannelType.GuildVoice,
     parent: category,

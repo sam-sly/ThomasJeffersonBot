@@ -16,7 +16,7 @@ const userJoinedGuildChannel = async (newState) => {
 
   // User joined the empty Social channel
   if (await SocialChannel.findOne({ id: newState.channelId }).exec() && newState.channel?.members.size === 1) {
-    await createNewSocialChannel(newState);
+    await createNewSocialChannel(newState.channel.parent);
     return;
   }
 
