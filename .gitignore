@@ -134,4 +134,4 @@ dist
 .pnp.*
 
 # pm2
-pm2/
+pm2/*.log
