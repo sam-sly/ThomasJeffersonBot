@@ -1,7 +1,7 @@
 module.exports = {
   apps : [{
-    name: 'TJ',
-    cwd: '..',
+    name: 'ThomasJefferson',
+    cwd: '.',
     script: 'index.js',
     log_file: 'pm2/production.log',
     node_args: '--env-file .env',
