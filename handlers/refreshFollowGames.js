@@ -60,6 +60,9 @@ const groupGames = (games) => {
 
 module.exports = async (guild) => {
   const games = await Game.find().exec();
+
+  if (games.length === 0) return;
+
   const groupedGames = groupGames(games);
 
   const followGamesChannel = guild.channels.cache.get(process.env.FOLLOW_GAMES_CHANNEL);

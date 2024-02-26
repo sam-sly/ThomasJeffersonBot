@@ -12,7 +12,7 @@ module.exports = async (newState) => {
 
   const button = new ButtonBuilder()
     .setCustomId(newState.member.id)
-    .setLabel('Move to my channel')
+    .setLabel(`Move ${newState.member.displayName} to my channel`)
     .setStyle(ButtonStyle.Success);
     
   const row = new ActionRowBuilder().addComponents(button);
