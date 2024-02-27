@@ -3,7 +3,9 @@ const {
   ChatInputCommandInteraction,
 } = require("discord.js");
 const Game = require("../../models/game.js");
+const ButtonListener = require('../../models/buttonListener');
 const getMembersRole = require("../../utils/getMembersRole");
+const refreshFollowGames = require("../../handlers/refreshFollowGames.js");
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -54,7 +56,11 @@ module.exports = {
     await guild.roles.delete(guild.roles.cache.get(gameToRemove.roleId));
     await guild.channels.delete(guild.channels.cache.get(gameToRemove.channelId));
 
-    await Game.deleteOne({ roleId: gameRole.id });
+    await Game.deleteOne({ roleId: gameRole.id }).exec();
+
+    await ButtonListener.deleteMany({ id: gameToRemove._id }).exec();
+
+    refreshFollowGames(guild);
     console.log(`${gameToRemove.name} has been deleted.`);
 
     await interaction?.editReply({

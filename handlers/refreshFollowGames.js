@@ -29,7 +29,10 @@ const groupGames = (games) => {
   let messageOfRows = [];
   let rowOfGames = [];
 
-  for (const game of games.sort((a, b) => a.name > b.name)) {
+  const sortedGames = games.sort((a, b) => {
+    return a.name.toLowerCase().localeCompare(b.name.toLowerCase());
+  });
+  for (const game of sortedGames) {
     rowOfGames.push(game);
 
     if (rowOfGames.length === 5) {
@@ -42,15 +45,21 @@ const groupGames = (games) => {
       }
     }
   }
-  messageOfRows.push(rowOfGames);
-  messages.push(messageOfRows);
+  if (rowOfGames.length > 0) {
+    messageOfRows.push(rowOfGames);
+    messages.push(messageOfRows);
+  }
 
   for (let i = 0; i < messages.length - 1; i++) {
-    if (messages[i].slice(-1).slice(-1).toLowerCase().charAt(0) === messages[i+1][0][0].toLowerCase().charAt(0)) {
-      let count = 1;
-      while (messages[i].slice(-1).slice(-1-count).toLowerCase().charAt(0) === messages[i+1][0][0].toLowerCase().charAt(0)) {
+    const firstLetterOfLastGameOfThisMessage = messages[i][messages[i].length-1][messages[i][messages[i].length-1].length-1].name.toLowerCase().charAt(0);
+    const firstLetterOfFirstGameOfNextMessage = messages[i+1][0][0].name.toLowerCase().charAt(0);
+    if (firstLetterOfLastGameOfThisMessage === firstLetterOfFirstGameOfNextMessage) {
+      let count = 0;
+      let firstLetterOfNextGameBack;
+      do {
         count++;
-      }
+        firstLetterOfNextGameBack = messages[i][messages[i].length-1][messages[i][messages[i].length-1].length-1].name.toLowerCase().charAt(0);
+      } while (firstLetterOfNextGameBack === firstLetterOfFirstGameOfNextMessage);
       messages = shift(messages, i, count);
     }
   }
@@ -60,20 +69,81 @@ const groupGames = (games) => {
 
 module.exports = async (guild) => {
   const games = await Game.find().exec();
-
-  if (games.length === 0) return;
-
   const groupedGames = groupGames(games);
 
   const followGamesChannel = guild.channels.cache.get(process.env.FOLLOW_GAMES_CHANNEL);
   const messagesMap = await followGamesChannel.messages.fetch();
   const messages = Array.from(messagesMap, ([id, message]) => (message)).reverse();
+
+  console.log('Updating follow-games header message...');
+
+  const activeGameRequestsButtons = await ButtonListener.find({ callbackPath: 'followGames', callbackName: 'approveRequest' }).exec();
+  const activeGameRequests = activeGameRequestsButtons.map((button) => button.args[0]);
+
+  let introMessage = `# ⭐️ Welcome to the Game Selection Hub! ⭐️\n`
+    .concat(`## 💠 Select Your Games\n`)
+    .concat(`**Browse the list below** and click on the buttons corresponding to the games you play. Gain access to exclusive channels and stay up-to-date with the latest discussions and updates.\n\n`)
+    .concat(`## 📮 Request New Games\n`)
+    .concat(`**Can't find your favorite game?** 🤔 Click the button below to request its addition! Our moderators will review your suggestion and add it if it aligns with our community's interests.`)
+    .concat(`\n​`);
+
+  if (activeGameRequests.length > 0) {
+    introMessage = introMessage.concat(`\n🚩 **Active Game Requests:**\n`);
+    for (const game of activeGameRequests) introMessage = introMessage.concat(`- ${game}\n`);
+  }
+
+  const newGameButton = new ButtonBuilder()
+    .setCustomId('request-new-game')
+    .setLabel('➕ Request New Game')
+    .setStyle(ButtonStyle.Success);
+
+  const actionRow = new ActionRowBuilder().addComponents(newGameButton);
+  let headerMessage;
+
+  if (messages.length === 0) {
+    headerMessage = await followGamesChannel.send({
+      content: introMessage,
+      embeds: [],
+      components: [ actionRow ],
+      flags: [ SILENT_FLAG ],
+    });
+
+    await ButtonListener.create({
+      id: 'request-new-game',
+      messageId: headerMessage.id,
+      callbackPath: 'followGames',
+      callbackName: 'createRequest',
+    });
+  } else {
+    headerMessage = await messages[0].edit({
+      content: introMessage,
+      embeds: [],
+      components: [ actionRow ],
+      flags: [ SILENT_FLAG ],
+    });
+
+    const newGameListener = await ButtonListener.findOne({ id: 'request-new-game', messageId: headerMessage.id }).exec();
+
+    if (!newGameListener) {
+      await ButtonListener.create({
+        id: 'request-new-game',
+        messageId: headerMessage.id,
+        callbackPath: 'followGames',
+        callbackName: 'createRequest',
+      });
+    }
+  }
+
   messages.splice(0, 1);
+
+  console.log('Updating game buttons...');
 
   const emojis = guild.emojis.cache;
 
   let messageNum = 0;
   for (const message of groupedGames) {
+    if (message[0].length === 0) break;
+
     const actionRows = [];
     for (const row of message) {
       const buttons = [];
@@ -83,7 +153,7 @@ module.exports = async (guild) => {
         const button = new ButtonBuilder()
           .setCustomId(game._id.toString())
           .setLabel(`${game.name}・👤 ${game.subscribers}`)
-          .setStyle(ButtonStyle.Success)
+          .setStyle(ButtonStyle.Secondary)
           .setEmoji(emoji? `<:${emoji.name}:${emoji.id}:>` : '💠');
 
         buttons.push(button);
@@ -115,6 +185,7 @@ module.exports = async (guild) => {
         components: actionRows,
         flags: [ SILENT_FLAG ],
       });
+      messageNum++;
     }
 
     for (const row of message) {
@@ -124,7 +195,7 @@ module.exports = async (guild) => {
         if (!savedButton) await ButtonListener.create({
           id: game._id.toString(),
           messageId: messageSent.id,
-          callbackPath: 'followGames.js',
+          callbackPath: 'followGames',
           callbackName: 'followGame',
           args: [ game._id ],
         });
@@ -135,6 +206,10 @@ module.exports = async (guild) => {
         }
       }
     }
+  }
+
+  for (let i = messageNum; i < messages.length; i++) {
+    await messages[i].delete();
   }
   
   return;
