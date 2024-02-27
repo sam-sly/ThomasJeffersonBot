@@ -43,8 +43,7 @@ module.exports = async (category) => {
   fixChannelPositions(category, activeSocialChannels, activeGamingChannels);
 
   const historyEmbed = new EmbedBuilder()
-    .setTitle(channelDetails.name)
-    .setDescription(`*${channelDetails.location}*\n\n${channelDetails.description}`);
+    .setDescription(`## ${channelDetails.name}\n*${channelDetails.location}*\n\n${channelDetails.description}`);
 
   await newChannel.messages.channel.send({
     embeds: [ historyEmbed ],
