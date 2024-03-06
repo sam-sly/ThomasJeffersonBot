@@ -19,7 +19,7 @@ module.exports = {
 
     const { value: usersRole, rank } = await getMembersRole(member);
 
-    if (usersRole < rank.admin) {
+    if (usersRole < rank.owner) {
       await interaction.editReply({
         content: `You don't have permission to use this command.`,
       });
