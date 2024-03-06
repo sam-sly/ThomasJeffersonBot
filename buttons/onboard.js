@@ -17,7 +17,7 @@ const onboardingSteps = [
     name: 'welcome',
     content: `# 👋 Welcome, %MEMBER%!\n​\n`
     .concat(`Greetings, brave traveler, and thank you for stepping into our realm. We're thrilled to have you join our fellowship of gamers and adventurers. Whether you're a seasoned warrior or just starting your journey, you've found a place to call home.\n\n`)
-    .concat(`♤ ***Learn more in*** <#1161517513255956520>\n\n\n`)
+    .concat(`♤ ***Learn more in*** <#946877814433513473>\n\n\n`)
     .concat(`**To commence your adventure in this glorious server, simply click the button below.**`),
     buttons: [
       new ButtonBuilder()
