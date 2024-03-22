@@ -60,13 +60,32 @@ module.exports = async (channel, savedChannel) => {
 
   switch (savedChannel.influence) {
     case 'none':
+      activity = savedChannel.name;
       break;
-    case 'majority':
-      const allActivities = new Map();
+    case 'game':
+      console.log('Checking owner activity.');
+      const owner = channel.members.get(savedChannel.ownerId);
+
+      if (owner) {
+        for (const a of owner.presence.activities) {
+          if (skipActivities.includes(a.name)) continue;
+          activity = a.name;
+          break;
+        }
+      }
+
+      if (activity != null) {
+        console.log(`Owner activity: ${activity}`);
+        break;
+      }
+      console.log('No owner activity.');
 
       // TODO: change activity detection to use activity type codes
 
+      const allActivities = new Map();
+
       for (const member of channel.members.values()) {
+        if (!member.presence) continue;
         for (const a of member.presence.activities) {
           if (skipActivities.includes(a.name)) continue;
           if (allActivities.has(a.name)) {
@@ -95,18 +114,6 @@ module.exports = async (channel, savedChannel) => {
         };
       }
 
-      if (activity != null) break;
-    case 'owner':
-      console.log('Checking owner activity.');
-      const owner = channel.members.get(savedChannel.ownerId);
-      if (owner) {
-        for (const a of owner.presence.activities) {
-          if (skipActivities.includes(a.name)) continue;
-          activity = a.name;
-          break;
-        }
-      }
-      console.log(`Activity: ${activity}`);
       break;
   }
 

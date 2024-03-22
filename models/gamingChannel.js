@@ -27,7 +27,7 @@ module.exports = mongoose.model('GamingChannel', new mongoose.Schema({
   },
   influence: {
     type: String,
-    default: 'majority',
+    default: 'game',
   },
   ownerId: {
     type: String,

@@ -3,7 +3,6 @@ const {
   CategoryChannel,
   VoiceState,
   ChannelType,
-  EmbedBuilder,
 } = require('discord.js');
 const GamingChannel = require('../models/gamingChannel.js');
 
@@ -74,7 +73,7 @@ module.exports = async (newState) => {
     return r.id === process.env.GUEST_ROLE_ID;
   }), { 'ViewChannel': true });
 
-  await newChannel.messages.channel.send({
+  await newState.channel.send({
     content: `Owner: __**${newState.member.displayName}**__`,
     flags: [ SILENT_FLAG ]
   });
