@@ -47,10 +47,8 @@ const groupGames = (games) => {
     }
   }
 
-  if (rowOfGames.length > 0) {
-    messageOfRows.push(rowOfGames);
-    messages.push(messageOfRows);
-  }
+  if (rowOfGames.length > 0) messageOfRows.push(rowOfGames);
+  if (messageOfRows.length > 0) messages.push(messageOfRows);
 
   console.log(messages);
 
