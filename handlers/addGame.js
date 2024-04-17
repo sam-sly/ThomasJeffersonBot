@@ -4,7 +4,6 @@ const {
   Guild,
 } = require("discord.js");
 const Game = require("../models/game.js");
-const refreshFollowGames = require("../handlers/refreshFollowGames.js");
 
 /**
  * @param {String} gameName
