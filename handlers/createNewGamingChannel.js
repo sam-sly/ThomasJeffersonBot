@@ -35,13 +35,13 @@ module.exports = async (newState) => {
   channelDetails.number = number;
   channelDetails.ownerId = newState.member.id;
 
-  for (const activity of newState.member.presence.activities) {
+  for (const activity of newState.member.presence?.activities) {
     if (skipActivities.includes(activity.name)) continue;
     channelDetails.activity = activity.name;
     break;
   }
 
-  channelDetails.nameChanges = [Date.now()];
+  channelDetails.nameChanges = [ Date.now() ];
   await channelDetails.save();
 
   /**

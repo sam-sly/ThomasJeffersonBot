@@ -62,12 +62,15 @@ module.exports = async (channel, savedChannel) => {
     case 'none':
       activity = savedChannel.name;
       break;
+    case 'custom':
+      activity = savedChannel.activity;
+      break;
     case 'game':
       console.log('Checking owner activity.');
       const owner = channel.members.get(savedChannel.ownerId);
 
       if (owner) {
-        for (const a of owner.presence.activities) {
+        for (const a of owner.presence?.activities) {
           if (skipActivities.includes(a.name)) continue;
           activity = a.name;
           break;
@@ -79,8 +82,6 @@ module.exports = async (channel, savedChannel) => {
         break;
       }
       console.log('No owner activity.');
-
-      // TODO: change activity detection to use activity type codes
 
       const allActivities = new Map();
 
