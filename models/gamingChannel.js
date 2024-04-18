@@ -41,4 +41,24 @@ module.exports = mongoose.model('GamingChannel', new mongoose.Schema({
     type: Number,
     default: null,
   },
+  privacyMode: {
+    type: String,
+    default: 'members',
+  },
+  lobbyId: {
+    type: String,
+    default: null,
+  },
+  privacyList: {
+    type: String,
+    default: null,
+  },
+  blacklist: {
+    type: [ String ],
+    default: [],
+  },
+  whitelist: {
+    type: [ String ],
+    default: [],
+  },
 }));
