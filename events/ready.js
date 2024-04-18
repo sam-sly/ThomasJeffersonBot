@@ -21,7 +21,7 @@ module.exports = {
       .setDescription(`*Bot Status*\n# 🟡 ​ ​ Restarting...\n​\nI have been restarted either due to an update or an error.  I am sorry for the inconvenience.  I will be up and running again soon!\n\n**Almost ready...**`)
       .setColor('Yellow');
 
-    const message = await client.channels.cache.get(process.env.OWNER_CHANNEL).send({
+    const message = await client.channels.cache.get(process.env.MODERATOR_CHANNEL).send({
       embeds: [ statusStarting ],
       flags: [ SILENT_FLAG ],
     });
