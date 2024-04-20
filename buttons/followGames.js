@@ -269,7 +269,7 @@ module.exports = new Map([
       return;
     }
 
-    await interaction.update();
+    await interaction.update({ fetchReply: false });
 
     await member.roles.add(newGame.role);
     const gameJustAdded = await Game.findOne({ roleId: newGame.role.id }).exec();
