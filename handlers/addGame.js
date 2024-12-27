@@ -19,7 +19,7 @@ module.exports = async (gameName, iconURL, guild) => {
   let emoji;
   try {
     emoji = await guild.emojis.create({
-      name: gameName.replace(/\s+/g, '').replace(/[^a-zA-Z0-9-_]/g,''),
+      name: gameName.replace(/\s+/g, '').replace(/[^a-zA-Z0-9-_]/g, ''),
       attachment: iconURL,
     });
   } catch (error) {
@@ -33,14 +33,14 @@ module.exports = async (gameName, iconURL, guild) => {
   const role = await guild.roles.create({
     name: gameName,
     color: Colors.Aqua,
-    icon: (guild.premiumTier >= 2)? emoji : null,
+    icon: (guild.premiumTier >= 2) ? emoji : null,
   });
   console.log(`Created new role ${role.name}.`);
 
   const gamesCategory = guild.channels.cache.get(process.env.GAMES_CATEGORY);
 
   const channel = await guild.channels.create({
-    name: `💠・${gameName.toLowerCase().replace(/\s+/g,'-').replace(/[^a-zA-Z0-9-_]/g,'')}`,
+    name: `💠・${gameName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-zA-Z0-9-_]/g, '')}`,
     type: ChannelType.GuildText,
     permissionOverwrites: gamesCategory.permissionOverwrites.cache,
     parent: gamesCategory,
